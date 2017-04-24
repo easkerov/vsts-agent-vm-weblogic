@@ -66,15 +66,18 @@ cd ${agent_home}
 sudo tar -xzf /tmp/${agent_tar}
 
 # Installing JDK 8
+echo "Installing JDK 8..."
 sudo rpm -ivh /tmp/${jdk_rpm}
 
 # Installing Git
+echo "Installing Git..."
 cd ${git_home}
 sudo make prefix=/usr/local/git all
 sudo make prefix=/usr/local/git install
 
 cd /tmp
 # Creating shell script to set env. variables in /etc/profile.d/
+echo "Configuring environment..."
 javapath=$(readlink -f /usr/bin/java | sed "s:/jre/bin/java::")
 cat <<EOF > /tmp/setBuildENV.sh
 export JAVA_HOME=$javapath
@@ -89,13 +92,18 @@ export JAVA_HOME=$javapath
 export PATH=$PATH:$javapath/bin:$maven_home/bin:/usr/local/git/bin
 
 # Configure agent
-echo "Running agent configuration"
+echo "Running agent configuration..."
 cd ${agent_home}
 sudo -u ${user_account} bash ${agent_home}/config.sh configure --url $vsts_url --agent $vsts_agent_name --pool $vsts_agent_pool_name --nostart --acceptteeeula --auth PAT --token $vsts_personal_access_token --unattended
 
 # Configure agent to run as a service
-echo "Configuring agent to run as a service"
+echo "Configuring agent to run as a service..."
 sudo bash ${agent_home}/svc.sh install
+sudo bash ${agent_home}/svc.sh start
+
+# Updating env.variables in Agen configuration
+sudo bash ${agent_home}/svc.sh stop
+./env.sh
 sudo bash ${agent_home}/svc.sh start
 
 echo "Done!"
