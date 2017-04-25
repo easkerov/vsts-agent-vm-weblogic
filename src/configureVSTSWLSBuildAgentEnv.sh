@@ -2,12 +2,18 @@
 # This script intended for preparing Oracle Linux/RHEL/CentOS machine to run VSTS private agent and 
 # deploy and build Java EE Apps to Oracle WebLogic Server
 
+# Validate input parameters
+if [[ !("$#" -eq 5) ]]; 
+    then echo "Parameters missing for vsts agent configuration." >&2
+    exit 1
+fi
+
 # Parameters
-vsts_account_name=
-vsts_personal_access_token=
-vsts_agent_name=vsts-agent-wls
-vsts_agent_pool_name=vsts-wls
-user_account=
+vsts_account_name=$1
+vsts_personal_access_token=$2
+vsts_agent_name=$3
+vsts_agent_pool_name=$4
+user_account=$5
 
 # Set up variables
 vsts_url=https://$vsts_account_name.visualstudio.com
