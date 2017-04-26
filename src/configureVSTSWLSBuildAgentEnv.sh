@@ -107,7 +107,7 @@ echo "Configuring agent to run as a service..."
 sudo bash ${agent_home}/svc.sh install
 sudo bash ${agent_home}/svc.sh start
 
-# Updating env.variables in Agen configuration
+# Updating env.variables in Agent configuration
 sudo bash ${agent_home}/svc.sh stop
 ./env.sh
 sudo bash ${agent_home}/svc.sh start

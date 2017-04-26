@@ -2,38 +2,38 @@
     "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "mrpAdminUsername": {
+        "vsvmAdminUsername": {
             "type": "string",
             "minLength": 1,
             "metadata": {
-                "description": "User name for the VSTS Build Server VM."
+                "description": "User name for the VSTS Build Server VM:"
             }
         },
-        "mrpAdminPassword": {
+        "vsvmAdminPassword": {
             "type": "securestring",
             "metadata": {
-                "description": "Password for the VSTS Build Server VM."
+                "description": "Password for the VSTS Build Server VM:"
             }
         },
-        "mrpDnsNameForPublicIP": {
+        "vsvmDnsNameForPublicIP": {
             "type": "string",
             "minLength": 1,
             "metadata": {
-                "description": "Globally unique DNS Name for the Public IP used to access the VSTS Build Server VM."
+                "description": "Globally unique DNS Name for the Public IP used to access the VSTS Build Server VM:"
             }
         },
         "vstsAccountName": {
             "type": "string",
             "minLength": 1,
             "metadata": {
-                "description": "VSTS Account Name."
+                "description": "VSTS Account Name:"
             }
         },
         "vstsPersonalAccessToken": {
             "type": "securestring",
             "minLength": 1,
             "metadata": {
-                "description": "VSTS Personal Access Token."
+                "description": "VSTS Personal Access Token:"
             }
         },
         "vstsAgentName": {
@@ -41,7 +41,7 @@
             "type": "string",
             "minLength": 1,
             "metadata": {
-                "description": "VSTS Agent name."
+                "description": "VSTS Agent name:"
             }
         },
         "vstsAgentPoolName": {
@@ -49,11 +49,217 @@
             "type": "string",
             "minLength": 1,
             "metadata": {
-                "description": "VSTS Agent pool name."
+                "description": "VSTS Agent pool name:"
             }
         }
     },
-    "variables": {  },
-    "resources": [  ],
-    "outputs": {  }
+    "variables": {
+        "location": "West Europe",
+        "vsvmImagePublisher": "Oracle",
+        "vsvmImageOffer": "Oracle-Linux",
+        "vsvmImageSku": "7.2",
+        "vsvmOSDiskName": "vsvmOsdisk",
+        "vsvmNicName": "vsvmNic",
+        "addressPrefix": "10.0.0.0/16",
+        "subnetName": "Subnet",
+        "subnetPrefix": "10.0.0.0/24",
+        "storageType": "Standard_DS1",
+        "publicIPAddressType": "Dynamic",
+        "vhdStorageContainerName": "vhds",
+        "vsvmNsgName": "vsvmNSG",
+        "vsvmVmSize": "Standard_D1_V2",
+        "vsvmVmName": "[toLower(parameters('vsvmDnsNameForPublicIP'))]",
+        "virtualNetworkName": "vsvmVNET",
+        "vnetId": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]",
+        "subnetRef": "[concat(variables('vnetId'), '/subnets/', variables('subnetName'))]",
+        "storageName": "[concat('vhdstorage', uniqueString(resourceGroup().id))]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "name": "[variables('storageName')]",
+            "apiVersion": "2015-06-15",
+            "location": "[variables('location')]",
+            "tags": {
+                "displayName": "StorageAccount"
+            },
+            "properties": {
+                "accountType": "[variables('storageType')]"
+            }
+        },
+        {
+            "apiVersion": "2015-06-15",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[parameters('vsvmDnsNameForPublicIP')]",
+            "location": "[variables('location')]",
+            "tags": {
+                "displayName": "PublicIPAddress-mrp"
+            },
+            "properties": {
+                "publicIPAllocationMethod": "[variables('publicIPAddressType')]",
+                "dnsSettings": {
+                    "domainNameLabel": "[parameters('vsvmDnsNameForPublicIP')]"
+                }
+            }
+        },
+        {
+            "apiVersion": "2015-06-15",
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[variables('virtualNetworkName')]",
+            "location": "[variables('location')]",
+            "tags": {
+                "displayName": "VirtualNetwork"
+            },
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('addressPrefix')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('subnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('subnetPrefix')]"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "2015-06-15",
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[variables('vsvmNsgName')]",
+            "location": "[variables('location')]",
+            "tags": {
+                "displayName": "NSG-mrp"
+            },
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "SSH",
+                        "properties": {
+                            "description": "SSH port",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "22",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 1000,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "2015-06-15",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('vsvmNicName')]",
+            "location": "[variables('location')]",
+            "tags": {
+                "displayName": "NIC-mrp"
+            },
+            "dependsOn": [
+                "[concat('Microsoft.Network/publicIPAddresses/', parameters('vsvmDnsNameForPublicIP'))]",
+                "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]",
+                "[concat('Microsoft.Network/networkSecurityGroups/', variables('vsvmNSGName'))]"
+            ],
+            "properties": {
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('vsvmNSGName'))]"
+                },
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('vsvmDnsNameForPublicIP'))]"
+                            },
+                            "subnet": {
+                                "id": "[variables('subnetRef')]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "2015-06-15",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[variables('vsvmVmName')]",
+            "location": "[variables('location')]",
+            "tags": {
+                "displayName": "VM-mrp"
+            },
+            "dependsOn": [
+                "[concat('Microsoft.Storage/storageAccounts/', variables('storageName'))]",
+                "[concat('Microsoft.Network/networkInterfaces/', variables('vsvmNicName'))]"
+            ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[variables('vsvmVmSize')]"
+                },
+                "osProfile": {
+                    "computerName": "[variables('vsvmVmName')]",
+                    "adminUsername": "[parameters('vsvmAdminUsername')]",
+                    "adminPassword": "[parameters('vsvmAdminPassword')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[variables('vsvmImagePublisher')]",
+                        "offer": "[variables('vsvmImageOffer')]",
+                        "sku": "[variables('vsvmImageSku')]",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "name": "osdisk",
+                        "vhd": {
+                            "uri": "[concat('http://', variables('storageName'), '.blob.core.windows.net/', variables('vhdStorageContainerName'), '/', variables('vsvmOSDiskName'), '.vhd')]"
+                        },
+                        "caching": "ReadWrite",
+                        "createOption": "FromImage"
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('vsvmNicName'))]"
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": "true",
+                        "storageUri": "[concat('http://', variables('storageName'), '.blob.core.windows.net')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "name": "[concat(variables('vsvmVmName'),'/mrpsetup')]",
+            "apiVersion": "2015-06-15",
+            "location": "[variables('location')]",
+            "dependsOn": [
+                "[concat('Microsoft.Compute/virtualMachines/', variables('vsvmVmName'))]"
+            ],
+            "properties": {
+                "publisher": "Microsoft.OSTCExtensions",
+                "type": "CustomScriptForLinux",
+                "typeHandlerVersion": "1.4",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "fileUris": [
+                        "https://raw.githubusercontent.com/easkerov/vsts-agent-vm-weblogic/master/src/configureVSTSWLSBuildAgentEnv.sh"
+                    ]
+                },
+                "protectedSettings": {
+                    "commandToExecute": "[concat('bash source configureVSTSWLSBuildAgentEnv.sh', parameters('vstsAccountName'), ' ', parameters('vstsPersonalAccessToken'), ' ', parameters('vstsAgentName'), ' ', parameters('vstsAgentPoolName'), ' ', parameters('vsvmAdminUsername'))]"
+                }
+            }
+        }
+    ]
 }
