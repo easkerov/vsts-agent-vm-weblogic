@@ -63,7 +63,7 @@
         "addressPrefix": "10.0.0.0/16",
         "subnetName": "Subnet",
         "subnetPrefix": "10.0.0.0/24",
-        "storageType": "Standard_DS1",
+        "storageType": "Standard_LRS",
         "publicIPAddressType": "Dynamic",
         "vhdStorageContainerName": "vhds",
         "vsvmNsgName": "vsvmNSG",
@@ -93,7 +93,7 @@
             "name": "[parameters('vsvmDnsNameForPublicIP')]",
             "location": "[variables('location')]",
             "tags": {
-                "displayName": "PublicIPAddress-mrp"
+                "displayName": "vsvmPublicIPAddress"
             },
             "properties": {
                 "publicIPAllocationMethod": "[variables('publicIPAddressType')]",
@@ -132,7 +132,7 @@
             "name": "[variables('vsvmNsgName')]",
             "location": "[variables('location')]",
             "tags": {
-                "displayName": "NSG-mrp"
+                "displayName": "vsvmNSG"
             },
             "properties": {
                 "securityRules": [
@@ -159,7 +159,7 @@
             "name": "[variables('vsvmNicName')]",
             "location": "[variables('location')]",
             "tags": {
-                "displayName": "NIC-mrp"
+                "displayName": "NIC-vsvm"
             },
             "dependsOn": [
                 "[concat('Microsoft.Network/publicIPAddresses/', parameters('vsvmDnsNameForPublicIP'))]",
@@ -192,7 +192,7 @@
             "name": "[variables('vsvmVmName')]",
             "location": "[variables('location')]",
             "tags": {
-                "displayName": "VM-mrp"
+                "displayName": "vsvmVM"
             },
             "dependsOn": [
                 "[concat('Microsoft.Storage/storageAccounts/', variables('storageName'))]",
@@ -240,16 +240,16 @@
         },
         {
             "type": "Microsoft.Compute/virtualMachines/extensions",
-            "name": "[concat(variables('vsvmVmName'),'/mrpsetup')]",
+            "name": "[concat(variables('vsvmVmName'),'/vsvmsetup')]",
             "apiVersion": "2015-06-15",
             "location": "[variables('location')]",
             "dependsOn": [
                 "[concat('Microsoft.Compute/virtualMachines/', variables('vsvmVmName'))]"
             ],
             "properties": {
-                "publisher": "Microsoft.OSTCExtensions",
-                "type": "CustomScriptForLinux",
-                "typeHandlerVersion": "1.4",
+                "publisher": "Microsoft.Azure.Extensions",
+                "type": "CustomScript",
+                "typeHandlerVersion": "2.0",
                 "autoUpgradeMinorVersion": true,
                 "settings": {
                     "fileUris": [
@@ -257,7 +257,7 @@
                     ]
                 },
                 "protectedSettings": {
-                    "commandToExecute": "[concat('bash source configureVSTSWLSBuildAgentEnv.sh', parameters('vstsAccountName'), ' ', parameters('vstsPersonalAccessToken'), ' ', parameters('vstsAgentName'), ' ', parameters('vstsAgentPoolName'), ' ', parameters('vsvmAdminUsername'))]"
+                    "commandToExecute": "[concat('sh configureVSTSWLSBuildAgentEnv.sh ', parameters('vstsAccountName'), ' ', parameters('vstsPersonalAccessToken'), ' ', parameters('vstsAgentName'), ' ', parameters('vstsAgentPoolName'), ' ', parameters('vsvmAdminUsername'))]"
                 }
             }
         }

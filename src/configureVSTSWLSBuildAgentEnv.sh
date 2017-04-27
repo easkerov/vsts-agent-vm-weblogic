@@ -1,6 +1,6 @@
 #!/bin/sh
-# This script intended for preparing Oracle Linux machine to run VSTS private agent and 
-# deploy and build Java EE Apps to Oracle WebLogic Server
+# This script intended to prepare Oracle Linux Azure VM to run VSTS Linux Build Agent  
+# to support Java EE Apps deployment to Oracle WebLogic Server
 
 # Validate input parameters
 if [[ !("$#" -eq 5) ]]; 
@@ -95,20 +95,20 @@ export JAVA_HOME=$javapath
 
 echo "JAVA_HOME=${javapath}" >> ${agent_home}/.env
 echo "export JAVA_HOME=${javapath}" >> /home/$user_account/.bashrc
+echo $PATH:$javapath/bin:$maven_home/bin:/usr/local/git/bin > ${agent_home}/.path
 
 export PATH=$PATH:$javapath/bin:$maven_home/bin:/usr/local/git/bin 
-echo $PATH:$javapath/bin:$maven_home/bin:/usr/local/git/bin > ${agent_home}/.path
 
 sed -i 's,Defaults    requiretty,#Defaults    requiretty,g' /etc/sudoers
 
-# Configure agent
+# Configuring VSTS Agent
 echo "Running agent configuration..."
 cd ${agent_home}
-sudo -u ${user_account} bash ${agent_home}/config.sh configure --url $vsts_url --agent $vsts_agent_name --pool $vsts_agent_pool_name --nostart --acceptteeeula --auth PAT --token $vsts_personal_access_token --unattended
+sudo -u ${user_account} -E ./config.sh configure --unattended --url $vsts_url --agent $vsts_agent_name --pool $vsts_agent_pool_name --acceptteeeula --auth PAT --token $vsts_personal_access_token
 
-# Configure agent to run as a service
+# Installing VSTS Agent as a service
 echo "Configuring agent to run as a service..."
-sudo bash ${agent_home}/svc.sh install
-sudo bash ${agent_home}/svc.sh start
+sudo -E ./svc.sh install
+sudo -E ./svc.sh start
 
-echo "Done!"
+echo "DONE!"
