@@ -1,5 +1,5 @@
-#!/usr/bin/bash
-# This script intended for preparing Oracle Linux/RHEL/CentOS machine to run VSTS private agent and 
+#!/bin/sh
+# This script intended for preparing Oracle Linux machine to run VSTS private agent and 
 # deploy and build Java EE Apps to Oracle WebLogic Server
 
 # Validate input parameters
@@ -34,14 +34,12 @@ git_tar=${git_url##*/}
 maven_dir=$(basename $git_tar .tar.gz)
 git_home=/usr/src/${maven_dir}
 
-# Installing all required libs
-echo "Installing required libs..."
-sudo yum -y install libunwind.x86_64 icu
-sudo yum -y install wget deltarpm epel-release unzip libunwind gettext libcurl-devel openssl-devel zlib libicu-devel 
-sudo yum -y install curl-devel expat-devel gettext-devel openssl-devel zlib-devel
-sudo yum -y install gcc perl-ExtUtils-MakeMaker
-# Removing the current version of GIT 
-sudo yum -y remove git
+# Installing all required packages
+echo "Installing required packages..."
+yum -y install libunwind.x86_64 icu
+yum -y install wget deltarpm epel-release unzip libunwind gettext libcurl-devel openssl-devel zlib libicu-devel 
+yum -y install curl-devel expat-devel gettext-devel openssl-devel zlib-devel
+yum -y install gcc perl-ExtUtils-MakeMaker
 
 # Downloading all required software components
 echo "Downloading all required software components..."
@@ -59,43 +57,49 @@ wget ${git_url}
 echo "Unpacking software components..."
 # Maven
 echo "Maven..."
-sudo mkdir ${maven_home}
-sudo tar -xzf ${maven_tar} --strip-components=1 -C ${maven_home}
+mkdir ${maven_home}
+tar -xzf ${maven_tar} --strip-components=1 -C ${maven_home}
 # GIT
 echo "GIT..."
-sudo mkdir ${git_home}
-sudo tar -xzf ${git_tar} --strip-components=1 -C ${git_home}
+mkdir ${git_home}
+tar -xzf ${git_tar} --strip-components=1 -C ${git_home}
 # VSTS Agent
 echo "VSTS Agent..."
-sudo mkdir ${agent_home}
+mkdir ${agent_home}
 cd ${agent_home}
-sudo tar -xzf /tmp/${agent_tar}
+tar -xzf /tmp/${agent_tar}
 
 # Installing JDK 8
 echo "Installing JDK 8..."
-sudo rpm -ivh /tmp/${jdk_rpm}
+rpm -ivh /tmp/${jdk_rpm}
 
 # Installing Git
 echo "Installing Git..."
 cd ${git_home}
-sudo make prefix=/usr/local/git all
-sudo make prefix=/usr/local/git install
+make prefix=/usr/local/git all
+make prefix=/usr/local/git install
+mv /usr/bin/git /usr/bin/git_Orig
+ln -s /usr/local/git/bin/git /usr/bin/git
 
-cd /tmp
+# =============================================================================
 # Creating shell script to set env. variables in /etc/profile.d/
-echo "Configuring environment..."
+#echo "Configuring environment..."
+
 javapath=$(readlink -f /usr/bin/java | sed "s:/jre/bin/java::")
-cat <<EOF > /tmp/setBuildENV.sh
-export JAVA_HOME=$javapath
-export PATH=\$PATH:$javapath/bin:$maven_home/bin:/usr/local/git/bin
-EOF
 
-chmod a+x /tmp/setBuildENV.sh
-sudo mv /tmp/setBuildENV.sh /etc/profile.d/ 
-. /etc/profile.d/setBuildENV.sh
+echo "LANG=en_US.UTF-8" > ${agent_home}/.env
+echo "export LANG=en_US.UTF-8" >> /home/$user_account/.bashrc
 
+export LANG=en_US.UTF-8
 export JAVA_HOME=$javapath
-export PATH=$PATH:$javapath/bin:$maven_home/bin:/usr/local/git/bin
+
+echo "JAVA_HOME=${javapath}" >> ${agent_home}/.env
+echo "export JAVA_HOME=${javapath}" >> /home/$user_account/.bashrc
+
+export PATH=$PATH:$javapath/bin:$maven_home/bin:/usr/local/git/bin 
+echo $PATH:$javapath/bin:$maven_home/bin:/usr/local/git/bin > ${agent_home}/.path
+
+sed -i 's,Defaults    requiretty,#Defaults    requiretty,g' /etc/sudoers
 
 # Configure agent
 echo "Running agent configuration..."
@@ -105,11 +109,6 @@ sudo -u ${user_account} bash ${agent_home}/config.sh configure --url $vsts_url -
 # Configure agent to run as a service
 echo "Configuring agent to run as a service..."
 sudo bash ${agent_home}/svc.sh install
-sudo bash ${agent_home}/svc.sh start
-
-# Updating env.variables in Agent configuration
-sudo bash ${agent_home}/svc.sh stop
-./env.sh
 sudo bash ${agent_home}/svc.sh start
 
 echo "Done!"
