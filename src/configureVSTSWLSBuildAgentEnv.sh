@@ -95,6 +95,7 @@ export JAVA_HOME=$javapath
 
 echo "JAVA_HOME=${javapath}" >> ${agent_home}/.env
 echo "export JAVA_HOME=${javapath}" >> /home/$user_account/.bashrc
+echo "export PATH=\$PATH:${javapath}/bin:${maven_home}/bin:/usr/local/git/bin" >> /home/$user_account/.bashrc
 echo $PATH:$javapath/bin:$maven_home/bin:/usr/local/git/bin > ${agent_home}/.path
 
 export PATH=$PATH:$javapath/bin:$maven_home/bin:/usr/local/git/bin 
