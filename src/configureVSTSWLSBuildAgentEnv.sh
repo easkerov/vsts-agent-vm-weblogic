@@ -87,15 +87,19 @@ ln -s /usr/local/git/bin/git /usr/bin/git
 
 javapath=$(readlink -f /usr/bin/java | sed "s:/jre/bin/java::")
 
-echo "LANG=en_US.UTF-8" > ${agent_home}/.env
-echo "export LANG=en_US.UTF-8" >> /home/$user_account/.bashrc
-
 export LANG=en_US.UTF-8
 export JAVA_HOME=$javapath
 
+echo "LANG=en_US.UTF-8" > ${agent_home}/.env
 echo "JAVA_HOME=${javapath}" >> ${agent_home}/.env
+echo "M2_HOME=${maven_home}" >> ${agent_home}/.env
+
+echo "export LANG=en_US.UTF-8" >> /home/$user_account/.bashrc
 echo "export JAVA_HOME=${javapath}" >> /home/$user_account/.bashrc
+echo "export M2_HOME=${maven_home}" >> /home/$user_account/.bashrc
+
 echo "export PATH=\$PATH:${javapath}/bin:${maven_home}/bin:/usr/local/git/bin" >> /home/$user_account/.bash_profile
+
 echo $PATH:$javapath/bin:$maven_home/bin:/usr/local/git/bin > ${agent_home}/.path
 
 export PATH=$PATH:$javapath/bin:$maven_home/bin:/usr/local/git/bin 
