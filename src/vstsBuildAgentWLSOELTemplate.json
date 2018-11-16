@@ -57,7 +57,7 @@
         "location": "West Europe",
         "vsvmImagePublisher": "Oracle",
         "vsvmImageOffer": "Oracle-WebLogic-Server",
-        "vsvmImageSku": "12.2.1",
+        "vsvmImageSku": "Oracle-WebLogic-Server",
         "vsvmOSDiskName": "vsvmOsdisk",
         "vsvmNicName": "vsvmNic",
         "addressPrefix": "10.0.0.0/16",
